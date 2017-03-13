@@ -1,0 +1,17 @@
+{
+  "name": "fwsp-redis-connection",
+  "version": "0.0.1",
+  "description": "Handles redis connection/reconnection",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": "flywheelsports/fwsp-redis-connection",
+  "author": "Eric Adum <eric@flywheelsports.com>",
+  "license": "MIT",
+  "dependencies": {
+    "bluebird": "3.5.0",
+    "redis": "2.7.0",
+    "redis-url": "1.2.1"
+  }
+}
