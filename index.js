@@ -2,7 +2,7 @@ const redis = require('redis');
 const Promise = require('bluebird');
 
 class RedisConnection {
-  constructor(redisConfig) {
+  constructor(redisConfig, defaultRedisDb = 0) {
     let url = {};
     if (redisConfig.url) {
       let parsedUrl = require('redis-url').parse(redisConfig.url);
@@ -15,7 +15,7 @@ class RedisConnection {
         url.password = parsedUrl.password;
       }
     }
-    this.redisConfig = Object.assign(url, redisConfig);
+    this.redisConfig = Object.assign({ db: defaultRedisDb }, url, redisConfig);
     if (this.redisConfig.host) {
       delete this.redisConfig.url;
     }
