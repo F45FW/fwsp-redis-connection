@@ -1,6 +1,6 @@
 {
   "name": "fwsp-redis-connection",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Handles redis connection/reconnection",
   "main": "index.js",
   "scripts": {
