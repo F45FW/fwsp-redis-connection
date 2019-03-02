@@ -97,6 +97,13 @@ class RedisConnection {
     return self;
   }
   _cmd(conn, prop, command) {
+    if (this.engine === 'redis-fast-driver') {
+      return (...args) => {
+        const argArray = [command, ...args];
+        console.log('Performing rawCall with redis-driver-fast', {argArray});
+        return conn.client.rawCallAsync.call(conn.client, argArray);
+      };
+    }
     const func = this.engine === 'ioredis' ? conn.client[command] : conn.client[prop];
     this._info(`${this.engine} [${command}]`);
     return func.bind(conn.client);
@@ -120,27 +127,31 @@ class RedisConnection {
     }
   }
   _initializeEngine(engine) {
-    let redisMockClient;
     switch (engine) {
-      case 'ioredis':
+      case 'ioredis': {
         const Redis = require('ioredis');
         this.redisEngine = {createClient: config => new Redis(config)};
         break;
-      case 'redis-mock':
-        this.redisEngine = {createClient: () => {
-          if (redisMockClient) {
-            return redisMockClient;
-          }
-          return redisMockClient = Promise.promisifyAll(
+      }
+      case 'redis-mock': {
+        this.redisEngine = {
+          createClient: () => Promise.promisifyAll(
             require('redis-mock').createClient()
-          );
-        }};
+          )
+        };
         break;
-      case 'redis':
+      }
+      case 'redis': {
         this.redisEngine = require('redis');
         Promise.promisifyAll(this.redisEngine.RedisClient.prototype);
         Promise.promisifyAll(this.redisEngine.Multi.prototype);
         break;
+      }
+      case 'redis-fast-driver': {
+        const Redis = require('redis-fast-driver');
+        this.redisEngine = {createClient: config => new Redis(config)};
+        break;
+      }
       default:
         throw new Error(`Unsupported Redis engine: ${engine}`);
     }

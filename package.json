@@ -17,6 +17,7 @@
   "devDependencies": {
     "ioredis": "^4.6.2",
     "redis": "2.7.0",
+    "redis-fast-driver": "^2.1.2",
     "redis-mock": "^0.43.0"
   }
 }
