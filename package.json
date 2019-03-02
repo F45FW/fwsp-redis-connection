@@ -11,7 +11,12 @@
   "license": "MIT",
   "dependencies": {
     "bluebird": "3.5.0",
-    "redis": "2.7.0",
+    "redis-commands": "^1.4.0",
     "redis-url": "1.2.1"
+  },
+  "devDependencies": {
+    "ioredis": "^4.6.2",
+    "redis": "2.7.0",
+    "redis-mock": "^0.43.0"
   }
 }
