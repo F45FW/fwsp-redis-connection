@@ -10,7 +10,7 @@ class RedisConnection {
     this.verbose = verbose;
   }
 
-  // Public methods
+  // Static methods
 
   // For AWS ElasticCache w/ replication and Cluster-mode disabled
   static async ElastiCluster({
@@ -66,7 +66,24 @@ class RedisConnection {
     });
   }
 
-  // Establish connection
+  // Establish single connection w/o constructor
+  static async Client({
+    redisConfig,
+    defaultRedisDb = 0,
+    engine = 'redis',
+    verbose = true,
+    options = {
+      maxReconnectionAttempts: 6,
+      maxDelayBetweenReconnections: 5
+    }
+  }) {
+    const conn = new RedisConnection(redisConfig, defaultRedisDb, engine, verbose);
+    return await conn.connect(options);
+  }
+
+  // Public methods
+
+  // Establish single connection
   connect(options = {
     maxReconnectionAttempts: 6,
     maxDelayBetweenReconnections: 5
@@ -100,7 +117,7 @@ class RedisConnection {
     if (this.engine === 'redis-fast-driver') {
       return (...args) => {
         const argArray = [command, ...args];
-        console.log('Performing rawCall with redis-driver-fast', {argArray});
+        this._info('Performing rawCall with redis-driver-fast', {argArray});
         return conn.client.rawCallAsync.call(conn.client, argArray);
       };
     }
