@@ -3,8 +3,10 @@ const RedisConnectionFactory = require('./lib/RedisConnectionFactory');
 
 const url = 'redis://redis:6379/1';
 
-const engine = 'ioredis';
-const supportsAsync = false;
+const engine = 'redis';
+const supportsAsync = true; // note - this must match the engine
+
+const verbose = console.error;
 
 run().catch(console.error).then(() => process.exit(0));
 
@@ -20,7 +22,7 @@ async function testSingleConnection() {
   const factory = await RedisConnectionFactory.Client({
     redisConfig: {url},
     engine,
-    verbose: console.error
+    verbose
   });
   await doTests(factory);
   console.log('Testing normal construction');
@@ -35,7 +37,7 @@ async function testCluster() {
     primary: {url},
     replicas: [{url}, {url}],
     engine,
-    verbose: console.error
+    verbose
   });
   await doTests(cluster);
 }
