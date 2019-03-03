@@ -1,6 +1,11 @@
 
 const Promise = require('bluebird');
-const commands = require('redis-commands');
+const Cluster = require('./lib/cluster');
+
+const ASYNC_ENGINE = {
+  'redis': true,
+  'redis-mock': true
+};
 
 class RedisConnection {
 
@@ -18,52 +23,12 @@ class RedisConnection {
     replicas,
     defaultRedisDb = 0,
     engine = 'redis',
-    verbose = true
+    verbose = console.error
   }) {
-    const _info = (...args) => verbose && console.log(...args);
-    _info('Establishing connections to each node in cluster...');
-    const [primaryConn, ...replicaConns] = await Promise.map(
-      [primary, ...replicas],
-      async (redisConfig, index) => {
-        const conn = new RedisConnection(redisConfig, defaultRedisDb, engine, verbose)
-        const displayName = index ? `slave ${index}` : 'master';
-        _info(`Connecting to ${displayName}...`);
-        const client = await conn.connect();
-        _info(`Connected to ${displayName}`);
-        client.on('reconnecting', () => {
-          _info(`redis event [${displayName}] reconnecting`);
-        })
-        .on('warning', (warning) => {
-          _info(`redis event [${displayName}] warning: ${warning}`);
-        })
-        .on('end', () => {
-          _info(`redis event [${displayName}] end (disconnect)`);
-        })
-        .on('error', (err) => {
-          _info(`redis event [${displayName}] error: ${err}`);
-        });
-        return {displayName, conn, client};
-      }
+    return await Cluster(
+      RedisConnection,
+      {primary, replicas, defaultRedisDb, engine, verbose}
     );
-    return new Proxy({}, {
-      get: function(target, prop) {
-        if (prop === 'then' || prop === 'catch') {
-          // pass then through for Promises
-          return target[prop];
-        }
-        const command = prop.endsWith('Async')
-          ? prop.replace(/Async$/, '')
-          : prop;
-        _info({redisCommand: command.toUpperCase()});
-        if (commands.hasFlag(command, 'readonly')) {
-          _info(`Sending ${command} to random read-only replica`);
-          const replica = replicaConns[~~(replicaConns.length * Math.random())];
-          return replica.conn._cmd(replica, prop, command);
-        }
-        _info(`Sending ${command} to primary`);
-        return primaryConn.conn._cmd(primaryConn, prop, command);
-      }
-    });
   }
 
   // Establish single connection w/o constructor
@@ -71,7 +36,7 @@ class RedisConnection {
     redisConfig,
     defaultRedisDb = 0,
     engine = 'redis',
-    verbose = true,
+    verbose = console.error,
     options = {
       maxReconnectionAttempts: 6,
       maxDelayBetweenReconnections: 5
@@ -94,6 +59,11 @@ class RedisConnection {
       `max reconnection attempts (${reconnections}) reached`,
       () => ++reconnections > this.options.maxReconnectionAttempts
     );
+  }
+
+  // check if <cmd>Async methods are supported
+  engineSupportsAsync() {
+    return ASYNC_ENGINE[this.engine] || false;
   }
 
   // Private methods
@@ -121,7 +91,7 @@ class RedisConnection {
         return conn.client.rawCallAsync.call(conn.client, argArray);
       };
     }
-    const func = this.engine === 'ioredis' ? conn.client[command] : conn.client[prop];
+    const func = ASYNC_ENGINE[this.engine] ? conn.client[prop] : conn.client[command];
     this._info(`${this.engine} [${command}]`);
     return func.bind(conn.client);
   }
@@ -145,30 +115,12 @@ class RedisConnection {
   }
   _initializeEngine(engine) {
     switch (engine) {
-      case 'ioredis': {
-        const Redis = require('ioredis');
-        this.redisEngine = {createClient: config => new Redis(config)};
+      case 'ioredis': 
+      case 'redis-mock':
+      case 'redis':
+      case 'redis-fast-driver':
+        this.redisEngine = require(`./driver/${engine}`);
         break;
-      }
-      case 'redis-mock': {
-        this.redisEngine = {
-          createClient: () => Promise.promisifyAll(
-            require('redis-mock').createClient()
-          )
-        };
-        break;
-      }
-      case 'redis': {
-        this.redisEngine = require('redis');
-        Promise.promisifyAll(this.redisEngine.RedisClient.prototype);
-        Promise.promisifyAll(this.redisEngine.Multi.prototype);
-        break;
-      }
-      case 'redis-fast-driver': {
-        const Redis = require('redis-fast-driver');
-        this.redisEngine = {createClient: config => new Redis(config)};
-        break;
-      }
       default:
         throw new Error(`Unsupported Redis engine: ${engine}`);
     }
@@ -191,7 +143,7 @@ class RedisConnection {
     if (!this.verbose) {
       return;
     }
-    console.log(...args);
+    this.verbose(...args);
   }
 }
 

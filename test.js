@@ -1,7 +1,7 @@
 const RedisConnection = require('./index');
 
 const url = 'redis://redis:6379/1';
-const engine = 'redis-fast-cluster';
+const engine = 'redis';
 
 run().catch(console.error).then(() => process.exit(0));
 
@@ -17,7 +17,7 @@ async function testSingleConnection() {
   const factory = await RedisConnection.Client({
     redisConfig: {url},
     engine,
-    verbose: true
+    verbose: console.error
   });
   await doTests(factory);
   console.log('Testing normal construction');
@@ -30,14 +30,21 @@ async function testCluster() {
     primary: {url},
     replicas: [{url}, {url}],
     engine,
-    verbose: true
+    verbose: console.error
   });
   await doTests(cluster);
 }
 
 async function doTests(client) {
+  if (client.engineSupportsAsync()) {
     console.log(await client.getAsync('abcdef'));
     console.log(await client.setAsync('abcdef', '123'));
     console.log(await client.getAsync('abcdef'));
     console.log(await client.expireAsync('abcdef', 10));
+  } else {
+    console.log(await client.get('abcdef'));
+    console.log(await client.set('abcdef', '123'));
+    console.log(await client.get('abcdef'));
+    console.log(await client.expire('abcdef', 10));
+  }
 }
