@@ -1,7 +1,10 @@
 const RedisConnection = require('./index');
+const RedisConnectionFactory = require('./lib/RedisConnectionFactory');
 
 const url = 'redis://redis:6379/1';
-const engine = 'redis';
+
+const engine = 'ioredis';
+const supportsAsync = false;
 
 run().catch(console.error).then(() => process.exit(0));
 
@@ -14,19 +17,21 @@ async function run() {
 
 async function testSingleConnection() {
   console.log('Testing static factory method')
-  const factory = await RedisConnection.Client({
+  const factory = await RedisConnectionFactory.Client({
     redisConfig: {url},
     engine,
     verbose: console.error
   });
   await doTests(factory);
   console.log('Testing normal construction');
-  const normal = await (new RedisConnection({url})).connect();
+  const conn = new RedisConnection({url});
+  console.log({conn});
+  const normal = await conn.connect();
   await doTests(normal);
 }
 
 async function testCluster() {
-  const cluster = await RedisConnection.ElastiCluster({
+  const cluster = await RedisConnectionFactory.ElastiCluster({
     primary: {url},
     replicas: [{url}, {url}],
     engine,
@@ -36,7 +41,8 @@ async function testCluster() {
 }
 
 async function doTests(client) {
-  if (client.engineSupportsAsync()) {
+  console.log(`Performing tests on engine ${engine}`);
+  if (supportsAsync) {
     console.log(await client.getAsync('abcdef'));
     console.log(await client.setAsync('abcdef', '123'));
     console.log(await client.getAsync('abcdef'));

@@ -1,4 +1,13 @@
 const Redis = require('ioredis');
-module.exports =  {
-  createClient: config => new Redis(config)
-};
+const BaseRedisConnection = require('../lib/BaseRedisConnection');
+
+class IORedisConnection extends BaseRedisConnection {
+  supportsAsync() {
+    return false;
+  }
+  createClient(config) {
+    return new Redis(config);
+  }
+}
+
+module.exports =  IORedisConnection;
