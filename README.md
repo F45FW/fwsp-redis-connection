@@ -32,7 +32,7 @@ client = await (new RedisConnection({url}, 7, console.error)).connect();
 // behaves like a normal redis client
 // readonly operations are automatically sent to random replicas
 // writes are sent to the primary
-client = await RedisConnectionFactory.ElastiCluster({
+client = await RedisConnectionFactory.ReplicaGroup({
   primary: {url},
   replicas: [{url}, {url}],
   engine: 'redis',
