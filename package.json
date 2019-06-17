@@ -1,6 +1,6 @@
 {
   "name": "fwsp-redis-connection",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Handles redis connection/reconnection",
   "main": "index.js",
   "scripts": {
@@ -10,8 +10,8 @@
   "author": "Eric Adum <eric@flywheelsports.com>",
   "license": "MIT",
   "dependencies": {
-    "bluebird": "3.5.0",
-    "redis": "2.7.0",
+    "bluebird": "3.5.5",
+    "redis": "2.8.0",
     "redis-url": "1.2.1"
   }
 }
